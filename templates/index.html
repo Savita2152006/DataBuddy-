@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DataTalk — Chat with Your CSV</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    textarea, input[type="file"] {
+      width: 100%;
+      font-size: 16px;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    #output {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border: 1px solid #ddd;
+      overflow-x: auto;
+    }
+
+    img {
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+
+    #historyOutput {
+      margin-top: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ddd;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .hint-box {
+      background: #eef9ff;
+      border: 1px dashed #3498db;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📊 DataTalk — Chat with Your CSV</h1>
+
+  <!-- Upload -->
+  <label><strong>Upload CSV file:</strong></label>
+  <input type="file" id="csvFile">
+  <button onclick="uploadCSV()">Upload</button>
+  <div id="uploadMsg"></div>
+
+  <!-- Hint -->
+  <div class="hint-box">
+    💡 Try commands like:
+    <ul>
+      <li>first 5 rows</li>
+      <li>show all</li>
+      <li>describe</li>
+      <li>average of salary</li>
+      <li>scatter of age vs salary</li>
+      <li>bar chart of city</li>
+      <li>df['city'].value_counts()</li>
+      <li>export</li>
+    </ul>
+  </div>
+
+  <!-- Command -->
+  <label><strong>Type your command:</strong></label>
+  <textarea id="commandBox" placeholder="Type your command here..."></textarea>
+  <button onclick="sendCommand()">Submit Command</button>
+  <button onclick="downloadExcel()">📥 Download Final Excel</button>
+  <button onclick="getHistory()">📜 View History</button>
+
+  <!-- History -->
+  <div id="historyOutput"></div>
+
+  <!-- Output -->
+  <div id="output"><em>⚡ Output will appear here...</em></div>
+
+  <script>
+    function uploadCSV() {
+      const fileInput = document.getElementById('csvFile');
+      const uploadMsg = document.getElementById('uploadMsg');
+      const formData = new FormData();
+
+      if (!fileInput.files.length) {
+        uploadMsg.innerHTML = "<p class='error'>❌ Please select a CSV file first.</p>";
+        return;
+      }
+
+      formData.append("file", fileInput.files[0]);
+
+      fetch("/upload", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.message) {
+          uploadMsg.innerHTML = `<p class='success'>${data.message}</p>`;
+        } else if (data.error) {
+          uploadMsg.innerHTML = `<p class='error'>${data.error}</p>`;
+        }
+      })
+      .catch(err => {
+        uploadMsg.innerHTML = `<p class='error'>❌ Upload failed: ${err.message}</p>`;
+      });
+    }
+
+    function sendCommand() {
+      const commandText = document.getElementById("commandBox").value.trim();
+      const outputDiv = document.getElementById("output");
+      outputDiv.innerHTML = "<p>⏳ Processing your command...</p>";
+
+      fetch("/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ command: commandText })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.result !== undefined) {
+          outputDiv.innerHTML = data.result;
+        } else if (data.plot_url) {
+          outputDiv.innerHTML = `<img src="${data.plot_url}" alt="Generated Plot">`;
+        } else if (data.file_url) {
+          outputDiv.innerHTML = `<p><a href="${data.file_url}" download>📥 Download Modified Excel</a></p>`;
+        } else if (data.error) {
+          outputDiv.innerHTML = `<p class='error'>❌ ${data.error}</p>`;
+        } else {
+          outputDiv.innerHTML = `<p>⚠️ Unexpected response</p>`;
+        }
+        document.getElementById("commandBox").value = "";
+      })
+      .catch(err => {
+        outputDiv.innerHTML = `<p class='error'>❌ Error: ${err.message}</p>`;
+      });
+    }
+
+    function getHistory() {
+      fetch("/history")
+        .then(res => res.json())
+        .then(data => {
+          const list = data.history.map(cmd => `<li>${cmd}</li>`).join("");
+          document.getElementById("historyOutput").innerHTML = `<ul>${list}</ul>`;
+        });
+    }
+
+    function downloadExcel() {
+      fetch("/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ command: "export" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.file_url) {
+          window.open(data.file_url, "_blank");
+        } else {
+          alert("❌ No Excel file available. Try modifying your data first.");
+        }
+      })
+      .catch(err => {
+        alert("❌ Download failed: " + err.message);
+      });
+    }
+  </script>
+
+</body>
+</html>
