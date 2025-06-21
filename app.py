@@ -101,6 +101,17 @@ def analyze():
         elif "describe" in user_input:
             code = "output = df.describe()"
 
+        elif "shape" in user_input or "rows and columns" in user_input:
+            code = "output = df.shape"
+
+        elif "size of dataframe" in user_input or "total cells" in user_input or "size" in user_input:
+              code = "output = df.size"
+
+        elif "sample" in user_input or "random row" in user_input:
+             nums = [int(s) for s in user_input.split() if s.isdigit()]
+             n = nums[0] if nums else 1
+             code = f"output = df.sample(n={n})"
+
         elif "null" in user_input and "remove" in user_input:
             code = "df.dropna(inplace=True); output = '✅ Null values removed.'"
 
