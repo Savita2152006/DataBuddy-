@@ -2,121 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DataTalk — Chat with Your CSV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataBuddy - AI-Powered CSV Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      padding: 30px;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
     }
+    .error { color: red; font-weight: bold; }
+    .success { color: green; font-weight: bold; }
 
-    h1 {
-      color: #2c3e50;
-    }
-
-    textarea, input[type="file"] {
-      width: 100%;
-      font-size: 16px;
-      padding: 10px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #3498db;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-
-    button:hover {
-      background: #2980b9;
-    }
-
+    /* Enable horizontal scroll for wide tables */
     #output {
-      margin-top: 30px;
-      background: white;
-      padding: 20px;
-      border: 1px solid #ddd;
       overflow-x: auto;
+      white-space: nowrap;
     }
 
-    img {
-      max-width: 100%;
-      margin-top: 10px;
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: max-content;
+    }
+
+    th, td {
+      padding: 8px 12px;
       border: 1px solid #ccc;
-    }
-
-    .success {
-      color: green;
-      font-weight: bold;
-    }
-
-    .error {
-      color: red;
-      font-weight: bold;
-    }
-
-    #historyOutput {
-      margin-top: 20px;
-      background: white;
-      padding: 10px;
-      border: 1px solid #ddd;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .hint-box {
-      background: #eef9ff;
-      border: 1px dashed #3498db;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 14px;
+      text-align: left;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
 
-  <h1>📊 DataTalk — Chat with Your CSV</h1>
+  <div class="max-w-4xl mx-auto px-6 py-10">
+    <h1 class="text-4xl font-bold mb-6 text-center">📊 DataBuddy — Chat with Your CSV</h1>
 
-  <!-- Upload -->
-  <label><strong>Upload CSV file:</strong></label>
-  <input type="file" id="csvFile">
-  <button onclick="uploadCSV()">Upload</button>
-  <div id="uploadMsg"></div>
+    <!-- Upload Section -->
+    <div class="bg-white text-slate-900 p-6 rounded-xl shadow mb-6">
+      <label class="font-semibold">Upload CSV file:</label>
+      <input type="file" id="csvFile" class="block w-full mt-2 mb-4 border p-2 rounded">
+      <button onclick="uploadCSV()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload</button>
+      <div id="uploadMsg" class="mt-2"></div>
+    </div>
 
-  <!-- Hint -->
-  <div class="hint-box">
-    💡 Try commands like:
-    <ul>
-      <li>first 5 rows</li>
-      <li>show all</li>
-      <li>describe</li>
-      <li>average of salary</li>
-      <li>scatter of age vs salary</li>
-      <li>bar chart of city</li>
-      <li>df['city'].value_counts()</li>
-      <li>export</li>
-    </ul>
+    <!-- Hint Section -->
+    <div class="bg-blue-50 text-blue-900 p-4 rounded-xl border mb-6">
+      <p class="font-medium mb-2">💡 Try commands like:</p>
+      <ul class="list-disc list-inside">
+        <li>first 5 rows</li>
+        <li>show all</li>
+        <li>describe</li>
+        <li>average of salary</li>
+        <li>scatter of age vs salary</li>
+        <li>bar chart of city</li>
+        <li>df['city'].value_counts()</li>
+        <li>export</li>
+      </ul>
+    </div>
+
+    <!-- Command Section -->
+    <div class="bg-white text-slate-900 p-6 rounded-xl shadow mb-6">
+      <label class="font-semibold">Type your command:</label>
+      <textarea id="commandBox" placeholder="Type your command here..." class="block w-full mt-2 p-2 border rounded min-h-[100px]"></textarea>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button onclick="sendCommand()" id="submitBtn" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Submit Command</button>
+        <button onclick="downloadExcel()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">📥 Download Final Excel</button>
+        <button onclick="getHistory()" class="bg-slate-600 text-white px-4 py-2 rounded hover:bg-slate-700">📜 View History</button>
+      </div>
+    </div>
+
+    <!-- History Section -->
+    <div id="historyOutput" class="bg-white text-slate-900 p-4 rounded-xl shadow mb-6 max-h-48 overflow-y-auto">
+      <em class="text-slate-500">No commands yet</em>
+    </div>
+
+    <!-- Output Section -->
+    <div id="output" class="bg-white text-slate-900 p-6 rounded-xl shadow overflow-x-auto">
+      <em>⚡ Output will appear here...</em>
+    </div>
   </div>
 
-  <!-- Command -->
-  <label><strong>Type your command:</strong></label>
-  <textarea id="commandBox" placeholder="Type your command here..."></textarea>
-  <button onclick="sendCommand()">Submit Command</button>
-  <button onclick="downloadExcel()">📥 Download Final Excel</button>
-  <button onclick="getHistory()">📜 View History</button>
-
-  <!-- History -->
-  <div id="historyOutput"></div>
-
-  <!-- Output -->
-  <div id="output"><em>⚡ Output will appear here...</em></div>
-
   <script>
+    let isProcessing = false;
+
     function uploadCSV() {
       const fileInput = document.getElementById('csvFile');
       const uploadMsg = document.getElementById('uploadMsg');
@@ -128,6 +96,8 @@
       }
 
       formData.append("file", fileInput.files[0]);
+
+      uploadMsg.innerHTML = "<p class='text-blue-600'>📤 Uploading...</p>";
 
       fetch("/upload", {
         method: "POST",
@@ -149,13 +119,18 @@
     function sendCommand() {
       const commandText = document.getElementById("commandBox").value.trim();
       const outputDiv = document.getElementById("output");
+      const submitBtn = document.getElementById("submitBtn");
+
+      if (!commandText || isProcessing) return;
+
+      isProcessing = true;
+      submitBtn.innerHTML = '⏳ Processing...';
+      submitBtn.disabled = true;
       outputDiv.innerHTML = "<p>⏳ Processing your command...</p>";
 
       fetch("/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: commandText })
       })
       .then(response => response.json())
@@ -169,13 +144,32 @@
         } else if (data.error) {
           outputDiv.innerHTML = `<p class='error'>❌ ${data.error}</p>`;
         } else {
-          outputDiv.innerHTML = `<p>⚠️ Unexpected response</p>`;
+          outputDiv.innerHTML = `<p>⚠ Unexpected response</p>`;
         }
         document.getElementById("commandBox").value = "";
+        submitBtn.innerHTML = 'Submit Command';
+        submitBtn.disabled = false;
+        isProcessing = false;
+
+        addToHistory(commandText);
       })
       .catch(err => {
         outputDiv.innerHTML = `<p class='error'>❌ Error: ${err.message}</p>`;
+        submitBtn.innerHTML = 'Submit Command';
+        submitBtn.disabled = false;
+        isProcessing = false;
       });
+    }
+
+    function addToHistory(command) {
+      const historyDiv = document.getElementById("historyOutput");
+      const currentHistory = historyDiv.innerHTML;
+
+      if (currentHistory.includes("No commands yet")) {
+        historyDiv.innerHTML = `<div class="space-y-2"><div class="p-2 bg-white rounded border text-sm">${command}</div></div>`;
+      } else {
+        historyDiv.innerHTML = `<div class="space-y-2"><div class="p-2 bg-white rounded border text-sm">${command}</div>${currentHistory}</div>`;
+      }
     }
 
     function getHistory() {
@@ -190,9 +184,7 @@
     function downloadExcel() {
       fetch("/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: "export" })
       })
       .then(res => res.json())
@@ -207,7 +199,13 @@
         alert("❌ Download failed: " + err.message);
       });
     }
-  </script>
 
+    document.getElementById("commandBox").addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendCommand();
+      }
+    });
+  </script>
 </body>
 </html>
